@@ -20,8 +20,11 @@ public partial class Comp584Context : IdentityDbContext<WorldModelUser>
     }
 
     public virtual DbSet<City> Cities { get; set; }
-
     public virtual DbSet<Country> Countries { get; set; }
+
+    public virtual DbSet<Team> Teams { get; set; }
+    public virtual DbSet<TeamMember> TeamMembers { get; set; }
+
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -49,6 +52,10 @@ public partial class Comp584Context : IdentityDbContext<WorldModelUser>
             entity.Property(e => e.Iso2).IsFixedLength();
             entity.Property(e => e.Iso3).IsFixedLength();
         });
+
+         modelBuilder.Entity<TeamMember>()
+        .HasIndex(tm => new { tm.TeamId, tm.UserId })
+        .IsUnique();
 
         OnModelCreatingPartial(modelBuilder);
     }
