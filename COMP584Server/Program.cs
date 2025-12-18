@@ -10,10 +10,14 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Reflection;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+// Register JwtHandler so it can be injected into controllers for JWT token generation
+builder.Services.AddScoped<JwtHandler>();
 
 builder.Services.AddDbContext<Comp584Context>(options =>
 {

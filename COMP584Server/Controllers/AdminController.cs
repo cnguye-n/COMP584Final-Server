@@ -27,7 +27,7 @@ namespace COMP584Server.Controllers
             }
             JwtSecurityToken jwtToken = await jwtHandler.GenerateTokenAsync(worldUser);
             var stringToken = new JwtSecurityTokenHandler().WriteToken(jwtToken);
-            return Ok(new LoginResponce { 
+            return Ok(new LoginResponse { 
                 Success = true,
                 Message ="Mom loves me!",
                 Token = stringToken
