@@ -49,7 +49,7 @@ public partial class Comp584Context : IdentityDbContext<WorldModelUser>
             .HasOne(tm => tm.User)
             .WithMany() // WorldModelUser does NOT need a TeamMembers collection
             .HasForeignKey(tm => tm.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict); //changed from Cascakde to Restrict
 
         // Prevent duplicate memberships
         modelBuilder.Entity<TeamMember>()

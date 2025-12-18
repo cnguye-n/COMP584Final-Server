@@ -155,82 +155,6 @@ namespace worldmodel.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("worldmodel.City", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CountryId")
-                        .HasColumnType("int")
-                        .HasColumnName("CountryId");
-
-                    b.Property<int>("Latitude")
-                        .HasColumnType("int")
-                        .HasColumnName("latitutde");
-
-                    b.Property<int>("Longitude")
-                        .HasColumnType("int")
-                        .HasColumnName("longtitude");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(500)")
-                        .HasColumnName("name");
-
-                    b.Property<int>("Population")
-                        .HasColumnType("int")
-                        .HasColumnName("population");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CountryId");
-
-                    b.ToTable("city");
-                });
-
-            modelBuilder.Entity("worldmodel.Country", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Iso2")
-                        .IsRequired()
-                        .HasMaxLength(2)
-                        .IsUnicode(false)
-                        .HasColumnType("char(2)")
-                        .HasColumnName("iso2")
-                        .IsFixedLength();
-
-                    b.Property<string>("Iso3")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .IsUnicode(false)
-                        .HasColumnType("char(3)")
-                        .HasColumnName("iso3")
-                        .IsFixedLength();
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("name");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("country");
-                });
-
             modelBuilder.Entity("worldmodel.Team", b =>
                 {
                     b.Property<int>("TeamId")
@@ -393,17 +317,6 @@ namespace worldmodel.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("worldmodel.City", b =>
-                {
-                    b.HasOne("worldmodel.Country", "Country")
-                        .WithMany("Cities")
-                        .HasForeignKey("CountryId")
-                        .IsRequired()
-                        .HasConstraintName("FK_city_country");
-
-                    b.Navigation("Country");
-                });
-
             modelBuilder.Entity("worldmodel.TeamMember", b =>
                 {
                     b.HasOne("worldmodel.Team", "Team")
@@ -415,17 +328,12 @@ namespace worldmodel.Migrations
                     b.HasOne("worldmodel.WorldModelUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Team");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("worldmodel.Country", b =>
-                {
-                    b.Navigation("Cities");
                 });
 
             modelBuilder.Entity("worldmodel.Team", b =>

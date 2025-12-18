@@ -12,8 +12,8 @@ using worldmodel;
 namespace worldmodel.Migrations
 {
     [DbContext(typeof(Comp584Context))]
-    [Migration("20251108004651_identity")]
-    partial class identity
+    [Migration("20251218083645_InitialTeams")]
+    partial class InitialTeams
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -158,80 +158,50 @@ namespace worldmodel.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("worldmodel.City", b =>
+            modelBuilder.Entity("worldmodel.Team", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("TeamId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CountryId")
-                        .HasColumnType("int")
-                        .HasColumnName("CountryId");
-
-                    b.Property<int>("Latitude")
-                        .HasColumnType("int")
-                        .HasColumnName("latitutde");
-
-                    b.Property<int>("Longitude")
-                        .HasColumnType("int")
-                        .HasColumnName("longtitude");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TeamId"));
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(500)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Population")
-                        .HasColumnType("int")
-                        .HasColumnName("population");
+                    b.HasKey("TeamId");
 
-                    b.HasKey("Id");
-
-                    b.HasIndex("CountryId");
-
-                    b.ToTable("city");
+                    b.ToTable("Teams");
                 });
 
-            modelBuilder.Entity("worldmodel.Country", b =>
+            modelBuilder.Entity("worldmodel.TeamMember", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("TeamMemberId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TeamMemberId"));
 
-                    b.Property<string>("Iso2")
+                    b.Property<string>("RoleInTeam")
                         .IsRequired()
-                        .HasMaxLength(2)
-                        .IsUnicode(false)
-                        .HasColumnType("char(2)")
-                        .HasColumnName("iso2")
-                        .IsFixedLength();
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Iso3")
+                    b.Property<int>("TeamId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
                         .IsRequired()
-                        .HasMaxLength(3)
-                        .IsUnicode(false)
-                        .HasColumnType("char(3)")
-                        .HasColumnName("iso3")
-                        .IsFixedLength();
+                        .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("name");
+                    b.HasKey("TeamMemberId");
 
-                    b.HasKey("Id");
+                    b.HasIndex("UserId");
 
-                    b.ToTable("country");
+                    b.HasIndex("TeamId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("TeamMembers");
                 });
 
             modelBuilder.Entity("worldmodel.WorldModelUser", b =>
@@ -350,20 +320,28 @@ namespace worldmodel.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("worldmodel.City", b =>
+            modelBuilder.Entity("worldmodel.TeamMember", b =>
                 {
-                    b.HasOne("worldmodel.Country", "Country")
-                        .WithMany("Cities")
-                        .HasForeignKey("CountryId")
-                        .IsRequired()
-                        .HasConstraintName("FK_city_country");
+                    b.HasOne("worldmodel.Team", "Team")
+                        .WithMany("TeamMembers")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("Country");
+                    b.HasOne("worldmodel.WorldModelUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+
+                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("worldmodel.Country", b =>
+            modelBuilder.Entity("worldmodel.Team", b =>
                 {
-                    b.Navigation("Cities");
+                    b.Navigation("TeamMembers");
                 });
 #pragma warning restore 612, 618
         }
