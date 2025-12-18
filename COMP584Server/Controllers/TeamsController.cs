@@ -1,6 +1,10 @@
+using COMP584Server.Data.DTO;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using worldmodel;
+
 
 namespace COMP584Server.Controllers
 {
@@ -21,6 +25,31 @@ namespace COMP584Server.Controllers
         {
             return await _context.Teams.ToListAsync();
         }
+
+        // GET: api/Teams/mine
+        //returns only the logged in user's teams
+        [HttpGet("mine")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<TeamDto>>> GetMyTeams()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized("Missing user id claim.");
+
+            var teams = await _context.TeamMembers
+                .Where(tm => tm.UserId == userId)
+                .Select(tm => new TeamDto
+                {
+                    TeamId = tm.TeamId,
+                    Name = tm.Team!.Name,
+                    MyRole = tm.RoleInTeam
+                })
+                .ToListAsync();
+
+            return Ok(teams);
+        }
+
 
         // GET: api/Teams/5
         [HttpGet("{id}")]

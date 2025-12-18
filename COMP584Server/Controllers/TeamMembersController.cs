@@ -1,3 +1,4 @@
+using COMP584Server.Data.DTO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using worldmodel;
@@ -17,24 +18,63 @@ namespace COMP584Server.Controllers
 
         // GET: api/TeamMembers
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TeamMember>>> GetTeamMembers()
+        public async Task<ActionResult<IEnumerable<TeamMemberDto>>> GetTeamMembers()
         {
-            return await _context.TeamMembers
-                .Include(tm => tm.Team)
-                .Include(tm => tm.User)
+            var result = await _context.TeamMembers
+                .Select(tm => new TeamMemberDto
+                {
+                    TeamMemberId = tm.TeamMemberId,
+                    TeamId = tm.TeamId,
+                    TeamName = tm.Team!.Name,
+                    UserId = tm.UserId,
+                    UserName = tm.User!.UserName!,
+                    RoleInTeam = tm.RoleInTeam
+                })
                 .ToListAsync();
+
+            return Ok(result);
+        }
+
+        // GET: api/TeamMembers/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<TeamMemberDto>> GetTeamMember(int id)
+        {
+            var tm = await _context.TeamMembers
+                .Where(t => t.TeamMemberId == id)
+                .Select(tm => new TeamMemberDto
+                {
+                    TeamMemberId = tm.TeamMemberId,
+                    TeamId = tm.TeamId,
+                    TeamName = tm.Team!.Name,
+                    UserId = tm.UserId,
+                    UserName = tm.User!.UserName!,
+                    RoleInTeam = tm.RoleInTeam
+                })
+                .FirstOrDefaultAsync();
+
+            if (tm == null)
+                return NotFound();
+
+            return Ok(tm);
         }
 
         // POST: api/TeamMembers
         [HttpPost]
-        public async Task<ActionResult<TeamMember>> PostTeamMember(TeamMember teamMember)
-        {
-            _context.TeamMembers.Add(teamMember);
-            await _context.SaveChangesAsync();
+    public async Task<ActionResult<TeamMember>> PostTeamMember(TeamMember teamMember)
+    {
+        bool exists = await _context.TeamMembers.AnyAsync(tm =>
+            tm.TeamId == teamMember.TeamId && tm.UserId == teamMember.UserId);
 
-            return CreatedAtAction(nameof(GetTeamMembers),
-                new { id = teamMember.TeamMemberId }, teamMember);
-        }
+        if (exists)
+            return Conflict("That user is already a member of this team.");
+
+        _context.TeamMembers.Add(teamMember);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetTeamMember),
+            new { id = teamMember.TeamMemberId }, teamMember);
+    }
+
 
         // DELETE: api/TeamMembers/5
         [HttpDelete("{id}")]

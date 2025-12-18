@@ -27,12 +27,17 @@ namespace COMP584Server
         }
         private async Task<List<Claim>> GetClaimAsync(WorldModelUser user)
         {
-            List<Claim> claims = [new Claim(ClaimTypes.Name, user.UserName!)];
-            // Claim.AddRange((await userManager.GetRolesAsync(user).Select(RoleManager => new Claim(ClaimTypes.Role, role)));
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),   // IMPORTANT for "my teams"
+                new Claim(ClaimTypes.Name, user.UserName ?? "")
+            };
+
             foreach (var role in await userManager.GetRolesAsync(user))
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
+
             return claims;
         }
     }
