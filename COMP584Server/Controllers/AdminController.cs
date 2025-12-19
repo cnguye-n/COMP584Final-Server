@@ -60,17 +60,27 @@ namespace COMP584Server.Controllers
         [Authorize(Roles = "admin")]
         public async Task<IActionResult> GetAllUsers()
         {
-            var users = await _userManager.Users
-                .Select(u => new
+            var rows =
+                from u in _userManager.Users
+                join tm in _context.TeamMembers on u.Id equals tm.UserId into tmj
+                from tm in tmj.DefaultIfEmpty()
+                join t in _context.Teams on tm.TeamId equals t.TeamId into tj
+                from t in tj.DefaultIfEmpty()
+                select new
                 {
                     userId = u.Id,
                     userName = u.UserName,
-                    email = u.Email
-                })
-                .ToListAsync();
+                    email = u.Email,
 
-            return Ok(users);
+                    teamId = tm != null ? (int?)tm.TeamId : null,
+                    teamName = t != null ? t.Name : null,
+                    roleInTeam = tm != null ? tm.RoleInTeam : "None"
+                };
+
+            return Ok(await rows.ToListAsync());
         }
+
+
 
         // ----------------------------
         // GET: api/Admin/users-not-in-team
@@ -147,6 +157,7 @@ namespace COMP584Server.Controllers
         // ----------------------------
         // DELETE: api/Admin/remove-from-team?teamId=1&userId=abc
         // Admin removes a user from a team
+        // You cannot remove other admins
         // ----------------------------
         [HttpDelete("remove-from-team")]
         [Authorize(Roles = "admin")]
@@ -160,6 +171,9 @@ namespace COMP584Server.Controllers
 
             if (membership == null)
                 return NotFound("Membership not found.");
+            
+            if ((membership.RoleInTeam ?? "").ToLower() == "owner")
+                return BadRequest("Owners cannot be removed from a team.");
 
             _context.TeamMembers.Remove(membership);
             await _context.SaveChangesAsync();
