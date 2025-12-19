@@ -28,13 +28,18 @@ builder.Services.AddIdentity<WorldModelUser, IdentityRole>(options =>
 // JWT Handler DI
 builder.Services.AddScoped<JwtHandler>();
 
-// CORS (Angular dev server)
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
-        policy.WithOrigins("http://localhost:4200")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
+        policy
+            .WithOrigins(
+                "http://localhost:4200",
+                "https://localhost:4200"
+                // add deployed Angular URL later
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
     );
 });
 
@@ -46,6 +51,11 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    var secret = builder.Configuration["JwtSettings:SecretKey"];
+
+    if (string.IsNullOrWhiteSpace(secret))
+        throw new InvalidOperationException("JwtSettings:SecretKey is missing. Set it in EB Environment properties.");
+
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -55,8 +65,7 @@ builder.Services.AddAuthentication(options =>
 
         ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
         ValidAudience = builder.Configuration["JwtSettings:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]!))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret))
     };
 });
 
@@ -90,22 +99,29 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Swagger UI
-if (app.Environment.IsDevelopment())
+// Swagger UI (Dev OR explicitly enabled)
+var enableSwagger =
+    app.Environment.IsDevelopment() ||
+    string.Equals(builder.Configuration["ENABLE_SWAGGER"], "true", StringComparison.OrdinalIgnoreCase);
+
+if (enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Comp584Server v1");
+        options.RoutePrefix = "swagger"; // makes it definitely /swagger
     });
 }
 
-// Middleware order matters
 app.UseCors("AllowAngular");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// root health check so EB domain doesn't 404
+app.MapGet("/", () => Results.Ok("COMP584Server API is running"));
 
 app.Run();
