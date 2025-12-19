@@ -14,7 +14,7 @@ namespace COMP584Server
             return new JwtSecurityToken(
                 issuer: configuration["JwtSettings:Issuer"],
                 audience: configuration["JwtSettings:Audience"],
-                expires: DateTime.Now.AddMinutes(Convert.ToDouble(configuration["JwtSettings:ExpiryInMinutes"])),
+                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(configuration["JwtSettings:ExpiryInMinutes"])),
                 signingCredentials: GetSigningCredentials(),
                 claims: await GetClaimAsync(user)
             );

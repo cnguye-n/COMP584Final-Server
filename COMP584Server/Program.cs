@@ -1,62 +1,44 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
-using System.Text;
+using System.IdentityModel.Tokens.Jwt;
 using worldmodel;
 using COMP584Server;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers
+// Add services to the container.
 builder.Services.AddControllers();
 
-// DbContext
+//Added bc recommended for Swagger
+builder.Services.AddEndpointsApiExplorer();
+
+// Register JwtHandler so it can be injected into controllers for JWT token generation
+builder.Services.AddScoped<JwtHandler>();
+
 builder.Services.AddDbContext<Comp584Context>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
-// Identity
 builder.Services.AddIdentity<WorldModelUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
 })
-.AddEntityFrameworkStores<Comp584Context>();
+    .AddEntityFrameworkStores<Comp584Context>();
 
-// JWT Handler DI
-builder.Services.AddScoped<JwtHandler>();
-
-// CORS
-builder.Services.AddCors(options =>
+builder.Services.AddAuthentication(c =>
 {
-    options.AddPolicy("AllowAngular", policy =>
-        policy
-            .WithOrigins(
-                "http://localhost:4200",
-                "https://localhost:4200"
-                // add deployed Angular URL later
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-    );
-});
-
-// Authentication (JWT Bearer)
-builder.Services.AddAuthentication(options =>
+    c.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    c.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(c =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    var secret = builder.Configuration["JwtSettings:SecretKey"];
-
-    if (string.IsNullOrWhiteSpace(secret))
-        throw new InvalidOperationException("JwtSettings:SecretKey is missing. Set it in EB Environment properties.");
-
-    options.TokenValidationParameters = new TokenValidationParameters
+    c.TokenValidationParameters = new()
     {
         ValidateIssuer = true,
         ValidateAudience = true,
@@ -65,19 +47,20 @@ builder.Services.AddAuthentication(options =>
 
         ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
         ValidAudience = builder.Configuration["JwtSettings:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret))
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]!))
     };
 });
 
-// Swagger/OpenAPI
-builder.Services.AddEndpointsApiExplorer();
+
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Comp584Server", Version = "v1" });
 
-    var securityScheme = new OpenApiSecurityScheme
+    OpenApiSecurityScheme securityScheme = new()
     {
-        Name = "Authorization",
+        Name = "COMP584Authentication",
         Type = SecuritySchemeType.Http,
         Scheme = JwtBearerDefaults.AuthenticationScheme,
         BearerFormat = "JWT",
@@ -89,7 +72,6 @@ builder.Services.AddSwaggerGen(c =>
             Id = JwtBearerDefaults.AuthenticationScheme
         }
     };
-
     c.AddSecurityDefinition(securityScheme.Reference.Id, securityScheme);
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
@@ -97,31 +79,28 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddOpenApi();
+
 var app = builder.Build();
 
-// Swagger UI (Dev OR explicitly enabled)
+// Updated Swagger enabling logic to match AWS ENABLE_SWAGGER
 var enableSwagger =
     app.Environment.IsDevelopment() ||
-    string.Equals(builder.Configuration["ENABLE_SWAGGER"], "true", StringComparison.OrdinalIgnoreCase);
+    builder.Configuration.GetValue<bool>("ENABLE_SWAGGER");
 
 if (enableSwagger)
 {
+    app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Comp584Server v1");
-        options.RoutePrefix = "swagger"; // makes it definitely /swagger
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
     });
 }
 
-app.UseCors("AllowAngular");
-
+app.UseCors(options => options.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
-// root health check so EB domain doesn't 404
-app.MapGet("/", () => Results.Ok("COMP584Server API is running"));
-
 app.Run();
