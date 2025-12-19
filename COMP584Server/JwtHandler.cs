@@ -30,7 +30,8 @@ namespace COMP584Server
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id),   // IMPORTANT for "my teams"
-                new Claim(ClaimTypes.Name, user.UserName ?? "")
+                new Claim(ClaimTypes.Name, user.UserName ?? ""),
+                new Claim(ClaimTypes.Email, user.Email ?? "")  
             };
 
             foreach (var role in await userManager.GetRolesAsync(user))
