@@ -380,3 +380,6 @@ zipcheck/
 # EB local build artifacts (do NOT commit)
 .elasticbeanstalk/app_versions/
 .elasticbeanstalk/app_versions/*
+
+# Ignore EB cached versions
+COMP584Server/.elasticbeanstalk/app_versions/
